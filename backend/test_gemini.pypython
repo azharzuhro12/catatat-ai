@@ -1,0 +1,1 @@
+import google.generativeai as genai  genai.configure(api_key='AIzaSyDWSL5OCPpZl2vWNTRpnqbPJoX6niyfDV0')  model = genai.GenerativeModel('gemini-1.5-flash')  r = model.generate_content('test')  print('OK:', r.text[:100])  test_gemini.py
