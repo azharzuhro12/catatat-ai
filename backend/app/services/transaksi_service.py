@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Optional
+import pytz
 from app.core.database import get_supabase
 from app.models.transaksi import TransaksiCreate, AIParseResult
 from app.services.ai_service import (
@@ -8,13 +9,13 @@ from app.services.ai_service import (
     generate_insight_mingguan,
 )
 
+WIB = pytz.timezone('Asia/Jakarta')
+
+def hari_ini() -> date:
+    return datetime.now(WIB).date()
+
 
 async def proses_chat_input(teks: str, user_id: str) -> dict:
-    """
-    Flow utama: teks → AI parse → simpan → konfirmasi.
-    Return dict untuk dikirim balik ke frontend.
-    """
-    # 1. Parse dengan AI
     hasil: AIParseResult = await parse_transaksi(teks)
 
     if hasil.tipe == "tidak_dikenali":
@@ -24,7 +25,6 @@ async def proses_chat_input(teks: str, user_id: str) -> dict:
             "transaksi": None,
         }
 
-    # 2. Simpan ke database (jika AI yakin)
     if not hasil.perlu_konfirmasi and hasil.jumlah:
         transaksi = await simpan_transaksi(
             user_id=user_id,
@@ -36,7 +36,6 @@ async def proses_chat_input(teks: str, user_id: str) -> dict:
             metode_input="chat",
         )
 
-        # 3. Jika piutang → simpan juga di tabel piutang
         if hasil.tipe == "piutang" and hasil.nama_pihak:
             await simpan_piutang(
                 user_id=user_id,
@@ -51,7 +50,6 @@ async def proses_chat_input(teks: str, user_id: str) -> dict:
             "transaksi": transaksi,
         }
 
-    # Perlu konfirmasi dari user
     return {
         "sukses": False,
         "pesan": hasil.konfirmasi_pesan,
@@ -72,7 +70,6 @@ async def simpan_transaksi(
     tanggal: Optional[date] = None,
     catatan: Optional[str] = None,
 ) -> dict:
-    """Simpan transaksi ke Supabase."""
     db = get_supabase()
     payload = {
         "user_id": user_id,
@@ -83,7 +80,7 @@ async def simpan_transaksi(
         "kategori_id": kategori_id,
         "nama_pihak": nama_pihak,
         "metode_input": metode_input,
-        "tanggal": str(tanggal or date.today()),
+        "tanggal": str(tanggal or hari_ini()),
         "catatan": catatan,
         "sudah_lunas": tipe not in ("piutang", "hutang"),
     }
@@ -119,15 +116,13 @@ async def get_transaksi_user(user_id: str, tanggal: Optional[date] = None, limit
 
 
 async def get_ringkasan_harian(user_id: str, tanggal: Optional[date] = None) -> dict:
-    """Hitung ringkasan harian + generate AI insight."""
-    tgl = tanggal or date.today()
+    tgl = tanggal or hari_ini()
     transaksi = await get_transaksi_user(user_id, tanggal=tgl, limit=100)
 
     pemasukan = sum(t["jumlah"] for t in transaksi if t["tipe"] == "pemasukan")
     pengeluaran = sum(t["jumlah"] for t in transaksi if t["tipe"] == "pengeluaran")
     laba = pemasukan - pengeluaran
 
-    # Data kemarin untuk perbandingan
     kemarin = tgl - timedelta(days=1)
     transaksi_kemarin = await get_transaksi_user(user_id, tanggal=kemarin, limit=100)
     pemasukan_kemarin = sum(t["jumlah"] for t in transaksi_kemarin if t["tipe"] == "pemasukan")
@@ -146,25 +141,23 @@ async def get_ringkasan_harian(user_id: str, tanggal: Optional[date] = None) -> 
         "kategori_terlaris": "-",
     }
 
-    # Generate AI insight
     data["ai_narasi"] = await generate_insight_harian(data)
     data["transaksi"] = transaksi
     return data
 
 
 async def get_laporan(user_id: str, periode: str = "mingguan") -> dict:
-    """Generate laporan harian/mingguan/bulanan."""
-    hari_ini = date.today()
+    tgl_hari_ini = hari_ini()
 
     if periode == "harian":
-        mulai = hari_ini
-        selesai = hari_ini
+        mulai = tgl_hari_ini
+        selesai = tgl_hari_ini
     elif periode == "mingguan":
-        mulai = hari_ini - timedelta(days=6)
-        selesai = hari_ini
-    else:  # bulanan
-        mulai = hari_ini.replace(day=1)
-        selesai = hari_ini
+        mulai = tgl_hari_ini - timedelta(days=6)
+        selesai = tgl_hari_ini
+    else:
+        mulai = tgl_hari_ini.replace(day=1)
+        selesai = tgl_hari_ini
 
     db = get_supabase()
     result = db.table("transaksi").select("*") \
@@ -180,7 +173,6 @@ async def get_laporan(user_id: str, periode: str = "mingguan") -> dict:
     laba = pemasukan - pengeluaran
     margin = (laba / pemasukan * 100) if pemasukan else 0
 
-    # Grafik per hari
     grafik = {}
     for t in transaksi:
         tgl = t["tanggal"]
@@ -193,7 +185,6 @@ async def get_laporan(user_id: str, periode: str = "mingguan") -> dict:
 
     grafik_list = sorted(grafik.values(), key=lambda x: x["tanggal"])
 
-    # Hari terbaik/terburuk
     if grafik_list:
         hari_terbaik = max(grafik_list, key=lambda x: x["pemasukan"])["tanggal"]
         hari_terburuk = min(grafik_list, key=lambda x: x["pemasukan"])["tanggal"]
@@ -235,20 +226,17 @@ async def get_piutang_aktif(user_id: str) -> list:
 
 async def bayar_piutang(piutang_id: str, jumlah_bayar: int, user_id: str) -> dict:
     db = get_supabase()
-    # Ambil data piutang
     p = db.table("piutang").select("*").eq("id", piutang_id).eq("user_id", user_id).single().execute()
     data = p.data
 
     baru_dibayar = data["jumlah_dibayar"] + jumlah_bayar
     status = "lunas" if baru_dibayar >= data["jumlah_total"] else "sebagian"
 
-    # Update piutang
     db.table("piutang").update({
         "jumlah_dibayar": baru_dibayar,
         "status": status,
     }).eq("id", piutang_id).execute()
 
-    # Catat sebagai pemasukan
     await simpan_transaksi(
         user_id=user_id,
         tipe="pemasukan",

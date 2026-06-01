@@ -5,6 +5,9 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 const api = axios.create({
   baseURL: BASE,
   timeout: 30000,
+  headers: {
+    'ngrok-skip-browser-warning': 'true',
+  }
 })
 
 // ── Transaksi ────────────────────────────────────────────────
@@ -19,7 +22,7 @@ export async function kirimSuara(audioBlob: Blob, userId: string) {
   form.append('audio', audioBlob, 'rekaman.webm')
   form.append('user_id', userId)
   const res = await api.post('/transaksi/suara', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data', 'ngrok-skip-browser-warning': 'true' },
   })
   return res.data
 }
@@ -29,7 +32,7 @@ export async function kirimStruk(file: File, userId: string) {
   form.append('foto', file)
   form.append('user_id', userId)
   const res = await api.post('/transaksi/scan-struk', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data', 'ngrok-skip-browser-warning': 'true' },
   })
   return res.data
 }

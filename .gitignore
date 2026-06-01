@@ -7,3 +7,4 @@ __pycache__/
 .env 
 backend/.env 
 backend/app/core/config.py 
+backend/app/core/config.py 
