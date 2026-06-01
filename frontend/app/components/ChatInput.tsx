@@ -216,22 +216,20 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
           disabled={loading}
         />
 
-        {/* Tombol mikrofon */}
+        {/* Tombol mikrofon - toggle mode */}
         <button
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onTouchStart={startRecording}
-          onTouchEnd={stopRecording}
+          onClick={() => isRecording ? stopRecording() : startRecording()}
           className={clsx(
             'relative p-2 rounded-xl flex-shrink-0 transition-colors',
             isRecording
               ? 'bg-red-500 text-white mic-pulse'
               : 'text-gray-400 hover:text-brand-600 hover:bg-brand-50'
           )}
-          title="Tahan untuk rekam"
+          title={isRecording ? 'Tap untuk stop & kirim' : 'Tap untuk rekam'}
         >
           {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </button>
+
 
         {/* Tombol kirim */}
         <button
