@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Send, Camera, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import { Mic, MicOff, Send, Camera, Loader2 } from 'lucide-react'
 import { kirimChat, kirimSuara, kirimStruk } from '@/app/lib/api'
 import { useVoiceRecorder } from '@/app/hooks/useVoiceRecorder'
 import { DEMO_USER_ID } from '@/app/lib/utils'
@@ -14,20 +14,12 @@ interface Message {
   sukses?: boolean
 }
 
-const CONTOH_INPUT = [
-  'jual bakso 50 ribu',
-  'kulakan daging 120rb',
-  'utang galon bu Eni',
-  'bayar separo pak Budi 25rb',
-  'bon rokok 15rb',
-]
-
 export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       dari: 'ai',
-      teks: '👋 Halo! Saya CatatAI. Ketik transaksi kamu pakai bahasa sehari-hari ya!\n\nContoh:\n• "jual bakso 50rb"\n• "kulakan daging 120rb"\n• "bon rokok bu Eni"\n• "bayar separo pak Budi 25rb"',
+      teks: '👋 Halo! Saya CatatAI. Ketik transaksi kamu pakai bahasa sehari-hari ya!\n\nContoh:\n• "jual bakso 50rb"\n• "kulakan daging 120rb"\n• "bayar separo pak Budi 25rb"',
       waktu: new Date(),
     },
   ])
@@ -40,12 +32,10 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isRecording, audioBlob, error: micError, startRecording, stopRecording, resetRecording } = useVoiceRecorder()
 
-  // Auto-scroll ke bawah
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Kirim audio setelah stop recording
   useEffect(() => {
     if (audioBlob) handleKirimSuara(audioBlob)
   }, [audioBlob])
@@ -60,17 +50,13 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
   async function handleKirimChat() {
     const teks = input.trim()
     if (!teks || loading) return
-
-    // Kirim foto struk jika ada
     if (fotoFile) {
       await handleKirimStruk(fotoFile)
       return
     }
-
     setInput('')
     addMsg('user', teks)
     setLoading(true)
-
     try {
       const hasil = await kirimChat(teks, DEMO_USER_ID)
       addMsg('ai', hasil.pesan, hasil.sukses)
@@ -133,14 +119,12 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
 
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
         <span className="text-sm font-medium text-gray-700">Input Transaksi</span>
         <span className="ml-auto text-xs text-gray-400">Chat · Suara · Foto</span>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 chat-scroll">
         {messages.map(msg => (
           <div key={msg.id} className={clsx('flex', msg.dari === 'user' ? 'justify-end' : 'justify-start')}>
@@ -170,7 +154,6 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
         <div ref={chatEndRef} />
       </div>
 
-      {/* Preview foto struk */}
       {fotoPreview && (
         <div className="mx-4 mb-2 relative">
           <img src={fotoPreview} alt="preview struk" className="h-20 rounded-lg object-cover border border-gray-200" />
@@ -181,22 +164,9 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
         </div>
       )}
 
-      {/* Error mikrofon */}
       {micError && <p className="px-4 text-xs text-red-500 mb-1">{micError}</p>}
 
-      {/* Contoh input chips */}
-      <div className="px-3 pb-2 flex gap-1.5 overflow-x-auto">
-        {CONTOH_INPUT.map(c => (
-          <button key={c}
-            onClick={() => setInput(c)}
-            className="text-xs whitespace-nowrap px-2.5 py-1 bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-500 rounded-full transition-colors"
-          >{c}</button>
-        ))}
-      </div>
-
-      {/* Input bar */}
       <div className="p-3 border-t border-gray-100 flex gap-2 items-center">
-        {/* Foto struk */}
         <button
           onClick={() => fileInputRef.current?.click()}
           className="p-2 rounded-xl text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors flex-shrink-0"
@@ -206,7 +176,6 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoChange} />
 
-        {/* Text input */}
         <input
           className="flex-1 text-sm bg-gray-50 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-200 placeholder-gray-400"
           placeholder='Ketik transaksi... ("jual mie 15rb")'
@@ -216,7 +185,6 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
           disabled={loading}
         />
 
-        {/* Tombol mikrofon - toggle mode */}
         <button
           onClick={() => isRecording ? stopRecording() : startRecording()}
           className={clsx(
@@ -230,8 +198,6 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
           {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
         </button>
 
-
-        {/* Tombol kirim */}
         <button
           onClick={handleKirimChat}
           disabled={!input.trim() || loading}
