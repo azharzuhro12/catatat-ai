@@ -54,7 +54,7 @@ export default function GrafikKeuangan({ data, loading }: GrafikKeuanganProps) {
 
   const chartData = data.map(d => ({
     ...d,
-    name: formatTanggal(d.tanggal).split(',')[0], // ambil "Sen", "Sel", dll
+    name: new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
   }))
 
   return (
