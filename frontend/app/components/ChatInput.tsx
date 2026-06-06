@@ -19,7 +19,7 @@ export default function ChatInput({ onTransaksiSimpan }: { onTransaksiSimpan?: (
     {
       id: '0',
       dari: 'ai',
-      teks: '👋 Halo! Saya CatatAI. Ketik transaksi kamu pakai bahasa sehari-hari ya!\n\nContoh:\n• "jual bakso 15rb"\n• "kulakan daging 120rb"\n• "utang galon bu Eni 12rb"',
+      teks: '👋 Halo! Saya CatatAI. Ketik transaksi kamu pakai bahasa sehari-hari ya!\n\nContoh:\n• "jual bakso 15rb"\n• "kulakan daging 120rb"\n• "utang galon pak budi 12rb"',
       waktu: new Date(),
     },
   ])
