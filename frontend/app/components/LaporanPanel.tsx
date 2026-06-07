@@ -85,7 +85,7 @@ export default function LaporanPanel() {
           </div>
 
           {/* Grafik */}
-          {data.grafik_harian?.length > 1 && (
+          {data.grafik_harian?.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-4">
               <p className="text-sm font-medium text-gray-700 mb-3">Grafik Keuangan</p>
               <GrafikKeuangan data={data.grafik_harian} />
